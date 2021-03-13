@@ -1,29 +1,6 @@
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 import wandb
-
-
-early_stop_callback = EarlyStopping(
-        monitor='val_acc',
-        min_delta=1.0,
-        patience=5,
-        verbose=False,
-        mode='max'
-    )
-
-MODEL_CKPT = 'model/model-{epoch:02d}-{val_acc:.2f}'
-checkpoint_callback = ModelCheckpoint(
-        monitor='val_acc',
-        filename=MODEL_CKPT,
-        save_top_k=5,
-        mode='max'
-)
-
-PROJECT = 'wandb-lightning'
-wandb_logger = WandbLogger(project=PROJECT, job_type='train')
 
 
 class ImagePredictionLogger(Callback):

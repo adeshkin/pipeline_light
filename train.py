@@ -1,9 +1,12 @@
 import pytorch_lightning as pl
 import wandb
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from dataset_light import CustomDataModule
 from model import LitModel
-from callbacks import early_stop_callback, checkpoint_callback, wandb_logger, ImagePredictionLogger
+from callbacks import ImagePredictionLogger
 
 
 def main():
@@ -25,6 +28,25 @@ def main():
 
     val_samples = next(iter(dm.val_dataloader()))
 
+    early_stop_callback = EarlyStopping(
+        monitor='val_acc',
+        min_delta=1.0,
+        patience=5,
+        verbose=False,
+        mode='max'
+    )
+
+    MODEL_CKPT_PATH = 'model/'
+    MODEL_CKPT = 'model/model-{epoch:02d}-{val_acc:.2f}'
+    checkpoint_callback = ModelCheckpoint(
+        monitor='val_acc',
+        filename=MODEL_CKPT,
+        save_top_k=5,
+        mode='max'
+    )
+
+    wandb_logger = WandbLogger(project='wandb-lightning', job_type='train')
+
     model = LitModel(input_shape, num_classes, learning_rate)
 
     trainer = pl.Trainer(max_epochs=150,
@@ -40,6 +62,14 @@ def main():
 
     # Close wandb run
     wandb.finish()
+
+    run = wandb.init(project='wandb-lightning', job_type='producer')
+
+    artifact = wandb.Artifact('model', type='model')
+    artifact.add_dir(MODEL_CKPT_PATH)
+
+    run.log_artifact(artifact)
+    run.join()
 
 
 if __name__ == "__main__":
